@@ -566,8 +566,8 @@ class OpenAIBackendAPI:
         _, base_model = split_image_model(model)
         if not base_model:
             return "auto", ""
-        if base_model == "gpt-image-2":
-            upstream_model = config.default_upstream_model_name
+        if base_model in {"gpt-image-2", "gpt-image-2.5", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"}:
+            upstream_model = config.default_upstream_model_name or "auto"
         elif base_model == CODEX_IMAGE_MODEL:
             upstream_model = base_model
         else:
@@ -874,7 +874,7 @@ class OpenAIBackendAPI:
             "timezone_offset_min": -480,
             "timezone": "Asia/Shanghai",
             "conversation_mode": {"kind": "primary_assistant"},
-            "system_hints": ["picture_v2"],
+            "system_hints": [],
             "partial_query": {
                 "id": new_uuid(),
                 "author": {"role": "user"},
@@ -976,7 +976,7 @@ class OpenAIBackendAPI:
         references = references or []
         parts = [{
             "content_type": "image_asset_pointer",
-            "asset_pointer": f"file-service://{item['file_id']}",
+            "asset_pointer": f"sediment://{item['file_id']}",
             "width": item["width"],
             "height": item["height"],
             "size_bytes": item["file_size"],
@@ -985,20 +985,22 @@ class OpenAIBackendAPI:
         content = {"content_type": "multimodal_text", "parts": parts} if references else {"content_type": "text",
                                                                                           "parts": [prompt]}
         metadata = {
-            "developer_mode_connector_ids": [],
-            "selected_github_repos": [],
-            "selected_all_github_repos": False,
-            "system_hints": ["picture_v2"],
-            "serialization_metadata": {"custom_symbol_offsets": []},
+            "serialization_metadata": {
+                "custom_symbol_offsets": [],
+                "render_format": "markdown",
+            },
+            "submission_mode": "manual_send",
         }
         if references:
             metadata["attachments"] = [{
                 "id": item["file_id"],
-                "mimeType": item["mime_type"],
-                "name": item["file_name"],
                 "size": item["file_size"],
+                "name": item["file_name"],
+                "mime_type": item["mime_type"],
                 "width": item["width"],
                 "height": item["height"],
+                "source": "local",
+                "is_big_paste": False,
             } for item in references]
         payload = {
             "action": "next",
@@ -1011,12 +1013,21 @@ class OpenAIBackendAPI:
             }],
             "parent_message_id": new_uuid(),
             "model": upstream_model,
-            "client_prepare_state": "sent",
+            "client_prepare_state": "success",
             "timezone_offset_min": -480,
             "timezone": "Asia/Shanghai",
             "conversation_mode": {"kind": "primary_assistant"},
             "enable_message_followups": True,
-            "system_hints": ["picture_v2"],
+            "system_hints": [],
+            "model_response_contracts": [{
+                "id": "photo_upload_action.v1",
+                "protocol_version": 1,
+                "presets": [
+                    "cap:image",
+                    "cap:file",
+                    "placement:end",
+                ],
+            }],
             "supports_buffering": True,
             "supported_encodings": ["v1"],
             "client_contextual_info": {
@@ -1028,9 +1039,12 @@ class OpenAIBackendAPI:
                 "screen_height": 1440,
                 "screen_width": 2560,
                 "app_name": "chatgpt.com",
+                "has_web_push_capabilities": True,
+                "web_push_notification_permission": "default",
             },
             "paragen_cot_summary_display_override": "allow",
             "force_parallel_switch": "auto",
+            "local_function_names": ["local.continue_in_work"],
         }
         if thinking_effort:
             payload["thinking_effort"] = thinking_effort
@@ -2565,7 +2579,7 @@ class OpenAIBackendAPI:
             thinking_effort: str = "",
     ) -> Iterator[str]:
         system_hints = system_hints or []
-        if "picture_v2" in system_hints:
+        if "picture_v2" in system_hints or "image" in system_hints or is_supported_image_model(model):
             yield from self._stream_picture_conversation(prompt, model, images or [])
             return
 
