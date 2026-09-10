@@ -1,6 +1,6 @@
 {
-  "auth-key": "chatgpt2api",
-  "refresh_account_interval_minute": 5,
+  "auth-key": "sfjoijgaosdm$56+SAdfs789(safs546?sa!",
+  "refresh_account_interval_minute": 60,
   "image_retention_days": 15,
   "image_poll_timeout_secs": 120,
   "auto_remove_rate_limited_accounts": false,
@@ -104,5 +104,6 @@
       "url": "https://canvas.best"
     }
   },
-  "image_remove_conversation_after_result": true
+  "image_remove_conversation_after_result": true,
+  "image_remove_conversation_always": false
 }

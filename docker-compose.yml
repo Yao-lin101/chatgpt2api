@@ -7,26 +7,30 @@ services:
     container_name: chatgpt2api
     restart: unless-stopped
     ports:
-      - "3000:80"
+      # - "3000:80"
+      - "127.0.0.1:3000:80"
     volumes:
       - ./data:/app/data
       - ./config.json:/app/config.json
     environment:
       # 存储后端配置 (可选值: json, sqlite, postgres, git)
-       - STORAGE_BACKEND=json
+      - STORAGE_BACKEND=json
       
-      # 数据库配置 (当 STORAGE_BACKEND=sqlite/postgres 时使用)
-      # - DATABASE_URL=postgresql://user:password@host:5432/dbname
-      # - DATABASE_URL=sqlite:///app/data/accounts.db
-      
-      # Git 仓库配置 (当 STORAGE_BACKEND=git 时使用)
-      # - GIT_REPO_URL=https://github.com/user/repo.git
-      # - GIT_TOKEN=ghp_xxxxxxxxxxxx
-      # - GIT_BRANCH=main
-      # - GIT_FILE_PATH=accounts.json
-      
-      # 认证密钥 (可选，覆盖 config.json)
-      # - CHATGPT2API_AUTH_KEY=your_secret_key
-      
-      # 基础 URL (可选)
-      # - CHATGPT2API_BASE_URL=https://your-domain.com
+      # 代理配置（大写 + 小写兼容）
+      - HTTP_PROXY=http://mihomo:7897
+      - HTTPS_PROXY=http://mihomo:7897
+      - ALL_PROXY=http://mihomo:7897
+      - http_proxy=http://mihomo:7897
+      - https_proxy=http://mihomo:7897
+      - all_proxy=http://mihomo:7897
+      # 排除容器本地与内网通信，防止代理拦截内部请求
+      - NO_PROXY=localhost,127.0.0.1,app,mihomo
+      - no_proxy=localhost,127.0.0.1,app,mihomo
+    
+    # 必须指定加入 external 网络
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    external: true
