@@ -23,7 +23,7 @@ from PIL import Image
 from services.account_service import account_service
 from services.config import config
 from services.proxy_service import proxy_settings
-from utils.helper import UpstreamHTTPError, ensure_ok, iter_sse_payloads, new_uuid, split_image_model
+from utils.helper import UpstreamHTTPError, ensure_ok, is_supported_image_model, iter_sse_payloads, new_uuid, split_image_model
 from utils.log import logger
 from utils.pow import build_legacy_requirements_token, build_proof_token, parse_pow_resources
 from utils.turnstile import solve_turnstile_token
@@ -566,8 +566,8 @@ class OpenAIBackendAPI:
         _, base_model = split_image_model(model)
         if not base_model:
             return "auto", ""
-        if base_model == "gpt-image-2":
-            upstream_model = config.default_upstream_model_name
+        if base_model in {"gpt-image-2", "gpt-image-2.5", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"}:
+            upstream_model = config.default_upstream_model_name or "auto"
         elif base_model == CODEX_IMAGE_MODEL:
             upstream_model = base_model
         else:
@@ -587,6 +587,10 @@ class OpenAIBackendAPI:
         }
         if requirements.proof_token:
             headers["OpenAI-Sentinel-Proof-Token"] = requirements.proof_token
+        if requirements.turnstile_token:
+            headers["OpenAI-Sentinel-Turnstile-Token"] = requirements.turnstile_token
+        if requirements.so_token:
+            headers["OpenAI-Sentinel-SO-Token"] = requirements.so_token
         if conduit_token:
             headers["X-Conduit-Token"] = conduit_token
         if accept == "text/event-stream":
@@ -868,7 +872,7 @@ class OpenAIBackendAPI:
         payload = {
             "action": "next",
             "fork_from_shared_post": False,
-            "parent_message_id": new_uuid(),
+            "parent_message_id": "client-created-root",
             "model": upstream_model,
             "client_prepare_state": "success",
             "timezone_offset_min": -480,
@@ -976,7 +980,7 @@ class OpenAIBackendAPI:
         references = references or []
         parts = [{
             "content_type": "image_asset_pointer",
-            "asset_pointer": f"file-service://{item['file_id']}",
+            "asset_pointer": f"sediment://{item['file_id']}",
             "width": item["width"],
             "height": item["height"],
             "size_bytes": item["file_size"],
@@ -985,20 +989,23 @@ class OpenAIBackendAPI:
         content = {"content_type": "multimodal_text", "parts": parts} if references else {"content_type": "text",
                                                                                           "parts": [prompt]}
         metadata = {
-            "developer_mode_connector_ids": [],
-            "selected_github_repos": [],
-            "selected_all_github_repos": False,
             "system_hints": ["picture_v2"],
-            "serialization_metadata": {"custom_symbol_offsets": []},
+            "serialization_metadata": {
+                "custom_symbol_offsets": [],
+                "render_format": "markdown",
+            },
+            "submission_mode": "manual_send",
         }
         if references:
             metadata["attachments"] = [{
                 "id": item["file_id"],
-                "mimeType": item["mime_type"],
-                "name": item["file_name"],
                 "size": item["file_size"],
+                "name": item["file_name"],
+                "mime_type": item["mime_type"],
                 "width": item["width"],
                 "height": item["height"],
+                "source": "local",
+                "is_big_paste": False,
             } for item in references]
         payload = {
             "action": "next",
@@ -1009,14 +1016,23 @@ class OpenAIBackendAPI:
                 "content": content,
                 "metadata": metadata,
             }],
-            "parent_message_id": new_uuid(),
+            "parent_message_id": "client-created-root",
             "model": upstream_model,
-            "client_prepare_state": "sent",
+            "client_prepare_state": "success",
             "timezone_offset_min": -480,
             "timezone": "Asia/Shanghai",
             "conversation_mode": {"kind": "primary_assistant"},
             "enable_message_followups": True,
             "system_hints": ["picture_v2"],
+            "model_response_contracts": [{
+                "id": "photo_upload_action.v1",
+                "protocol_version": 1,
+                "presets": [
+                    "cap:image",
+                    "cap:file",
+                    "placement:end",
+                ],
+            }],
             "supports_buffering": True,
             "supported_encodings": ["v1"],
             "client_contextual_info": {
@@ -1028,9 +1044,12 @@ class OpenAIBackendAPI:
                 "screen_height": 1440,
                 "screen_width": 2560,
                 "app_name": "chatgpt.com",
+                "has_web_push_capabilities": True,
+                "web_push_notification_permission": "default",
             },
             "paragen_cot_summary_display_override": "allow",
             "force_parallel_switch": "auto",
+            "local_function_names": ["local.continue_in_work"],
         }
         if thinking_effort:
             payload["thinking_effort"] = thinking_effort
@@ -2564,8 +2583,7 @@ class OpenAIBackendAPI:
             system_hints: Optional[list[str]] = None,
             thinking_effort: str = "",
     ) -> Iterator[str]:
-        system_hints = system_hints or []
-        if "picture_v2" in system_hints:
+        if is_supported_image_model(model):
             yield from self._stream_picture_conversation(prompt, model, images or [])
             return
 

@@ -218,7 +218,7 @@ def build_image_prompt(prompt: str, size: str | None, quality: str = "auto") -> 
     hints = []
     if size:
         hints.append(f"输出图片尺寸为 {size}。")
-    if quality:
+    if quality and quality.lower() not in {"auto", ""}:
         hints.append(f"输出图片质量为 {quality}。")
     return f"{prompt.strip()}\n\n{''.join(hints)}" if hints else prompt
 
@@ -700,7 +700,6 @@ def conversation_events(
         model=model,
         prompt=final_prompt,
         images=images if image_model else None,
-        system_hints=["picture_v2"] if image_model else None,
         thinking_effort=thinking_effort if not image_model else "",
     )
     yield from iter_conversation_payloads(payloads, history_text, history_messages)

@@ -1,14 +1,41 @@
+# Git & Version Control
 .git
 .gitignore
+.github
+
+# IDE & Editor configs
 .idea
+.vscode
+.codex
+
+# Python & Virtual Environments
 .venv
 __pycache__
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info
+dist
+build
 
-web/.next
-web/node_modules
+# Frontend source (built static files are copied from web_dist)
+web
 
+# Runtime Data & Storage (mounted as volume at runtime)
+data
+config.json
+
+# Documentation & Assets
 assets
-README.md
+docs
+*.md
+LICENSE
+
+# Tests
+test
+
+# Compose & Environment configs
+.env*
+docker-compose*.yml
+

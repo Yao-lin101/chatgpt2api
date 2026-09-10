@@ -13,7 +13,7 @@ DEFAULT_POW_SCRIPT = "https://chatgpt.com/backend-api/sentinel/sdk.js"
 from utils.helper import new_uuid
 
 
-CORES = [8, 16, 24, 32]
+CORES = [8, 10, 12, 16, 24, 32]
 DOCUMENT_KEYS = ["__reactContainer$fzelfjyxej8", "_reactListening5dehydibo78", "location"]
 SCREEN_RESOLUTIONS = [[1920, 1080], [1440, 900], [2560, 1440], [3840, 2160]]
 

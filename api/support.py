@@ -116,6 +116,15 @@ def start_limited_account_watcher(stop_event: Event) -> Thread:
 
 def resolve_web_asset(requested_path: str) -> Path | None:
     if not WEB_DIST_DIR.exists():
+        archive = BASE_DIR / "web_dist.tar.gz"
+        if archive.exists():
+            try:
+                import tarfile
+                with tarfile.open(archive, "r:gz") as tar:
+                    tar.extractall(path=BASE_DIR)
+            except Exception:
+                pass
+    if not WEB_DIST_DIR.exists():
         return None
     clean_path = requested_path.strip("/")
     base_dir = WEB_DIST_DIR.resolve()
