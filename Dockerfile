@@ -15,7 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
     openssl \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Asia/Shanghai
 
 # 使用国内镜像源加速 uv 安装，与 pyproject.toml / uv.lock 保持一致
 RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ uv
