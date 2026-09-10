@@ -17,7 +17,6 @@ services:
       - ./services:/app/services
       - ./utils:/app/utils
       - ./scripts:/app/scripts
-      - ./web_dist:/app/web_dist
     environment:
       # 时区配置
       - TZ=Asia/Shanghai
