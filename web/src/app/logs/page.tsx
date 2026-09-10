@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { deleteSystemLogs, fetchSystemLogs, type SystemLog } from "@/lib/api";
+import { clearSystemLogs, deleteSystemLogs, fetchSystemLogs, type SystemLog } from "@/lib/api";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 
 const LogType = {
@@ -129,6 +129,28 @@ function LogsContent() {
     }
   };
 
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const confirmClear = async () => {
+    setIsClearing(true);
+    try {
+      const data = await clearSystemLogs(type);
+      toast.success(`已清空 ${data.removed} 条【${typeLabels[type] || "日志"}】`);
+      setClearDialogOpen(false);
+      setSelectedIds([]);
+      if (detailLog && (!type || detailLog.type === type)) {
+        setDetailOpen(false);
+        setDetailLog(null);
+      }
+      await loadLogs();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "清空日志失败");
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   useEffect(() => {
     void loadLogs();
   }, [type, startDate, endDate]);
@@ -182,9 +204,18 @@ function LogsContent() {
               <button type="button" className="text-sm text-stone-500 hover:text-stone-900 disabled:text-stone-300" onClick={() => setSelectedIds([])} disabled={selectedIds.length === 0 || isDeleting}>
                 取消选择
               </button>
-              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-white px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeletingItems(items.filter((item) => selectedSet.has(item.id)))} disabled={selectedIds.length === 0 || isDeleting}>
+              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-white px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeletingItems(items.filter((item) => selectedSet.has(item.id)))} disabled={selectedIds.length === 0 || isDeleting || isClearing}>
                 <Trash2 className="size-4" />
                 删除所选
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 rounded-lg border-rose-200 bg-white px-3 text-rose-600 hover:bg-rose-50"
+                onClick={() => setClearDialogOpen(true)}
+                disabled={items.length === 0 || isLoading || isDeleting || isClearing}
+              >
+                <Trash2 className="size-4" />
+                清空{typeLabels[type] || "日志"}
               </Button>
             </div>
           </div>
@@ -339,6 +370,25 @@ function LogsContent() {
             <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => void confirmDelete()} disabled={isDeleting || deletingItems.length === 0}>
               {isDeleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
               确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={clearDialogOpen} onOpenChange={(open) => (!open ? setClearDialogOpen(false) : null)}>
+        <DialogContent showCloseButton={false} className="rounded-2xl p-6">
+          <DialogHeader className="gap-2">
+            <DialogTitle>清空{typeLabels[type] || "日志"}</DialogTitle>
+            <DialogDescription className="text-sm leading-6">
+              确认清空所有【{typeLabels[type] || "日志"}】吗？此操作将永久删除该分类下的全部日志，无法恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setClearDialogOpen(false)} disabled={isClearing}>
+              取消
+            </Button>
+            <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => void confirmClear()} disabled={isClearing}>
+              {isClearing ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              确认清空
             </Button>
           </DialogFooter>
         </DialogContent>

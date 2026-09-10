@@ -32,3 +32,7 @@ git_cache/
 loginwithpassword_*/
 logwithemailverifycode_*/
 test_batch_output/
+
+# Web distribution
+web_dist/
+!web_dist.tar.gz

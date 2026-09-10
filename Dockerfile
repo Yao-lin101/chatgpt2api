@@ -34,7 +34,8 @@ COPY api ./api
 COPY services ./services
 COPY utils ./utils
 COPY scripts ./scripts
-COPY web_dist ./web_dist
+COPY web_dist.tar.gz ./
+RUN tar -xzf web_dist.tar.gz && rm web_dist.tar.gz
 
 EXPOSE 80
 

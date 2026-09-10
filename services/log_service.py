@@ -109,6 +109,35 @@ class LogService:
         self.path.write_text(content, encoding="utf-8")
         return {"removed": removed}
 
+    def clear(self, type: str = "") -> dict[str, int]:
+        target_type = str(type or "").strip()
+        if not self.path.exists():
+            return {"removed": 0}
+        lines = self.path.read_text(encoding="utf-8").splitlines()
+        if not target_type:
+            removed = 0
+            for line_number, raw_line in enumerate(lines):
+                if self._parse_line(raw_line, line_number) is not None:
+                    removed += 1
+            self.path.write_text("", encoding="utf-8")
+            return {"removed": removed or len(lines)}
+        kept_lines: list[str] = []
+        removed = 0
+        for line_number, raw_line in enumerate(lines):
+            item = self._parse_line(raw_line, line_number)
+            if item is None:
+                kept_lines.append(raw_line)
+                continue
+            if str(item.get("type") or "") == target_type:
+                removed += 1
+                continue
+            kept_lines.append(self._serialize_item(item))
+        content = "\n".join(kept_lines)
+        if content:
+            content += "\n"
+        self.path.write_text(content, encoding="utf-8")
+        return {"removed": removed}
+
 
 log_service = LogService(DATA_DIR / "logs.jsonl")
 
