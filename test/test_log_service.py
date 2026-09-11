@@ -1,8 +1,11 @@
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
+
+os.environ.setdefault("CHATGPT2API_AUTH_KEY", "test-auth")
 
 for mod in [
     "fastapi", "fastapi.concurrency", "fastapi.responses",

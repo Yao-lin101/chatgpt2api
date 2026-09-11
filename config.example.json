@@ -38,6 +38,8 @@
   "sensitive_words": [],
   "global_system_prompt": "",
   "default_upstream_model_name": "auto",
+  "default_upstream_model_name_25": "",
+  "codex_image_model_25_name": "gpt-image-2.5-flare",
   "default_thinking_effort": "auto",
   "ai_review": {
     "enabled": false,
